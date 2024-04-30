@@ -59,7 +59,7 @@ if __name__ == "__main__":
     '''
     
     class_names = [ 'bus', 'bicycle', 'car', 'motorcycle', 'person', 'rider', 'train', 'truck' ]  # number of selected classes, nc=8
-    data_root_path = "/datasdc/zhouhuayi/dataset/domain_adaptation/CityScapes"  # train 2975, val 500
+    data_root_path = "F:/数据集/CityScapes"  # train 2975, val 500
 
 
     if os.path.exists(os.path.join(data_root_path, "yolov5_format")):
@@ -93,8 +93,8 @@ if __name__ == "__main__":
                 lb_path = os.path.join(lbs_path, id+".txt")  # new label path
                 res = convert_label(anno_abs_path, lb_path, id, class_names)  # convert labels to YOLO format
                 if os.path.exists(lb_path):
-                    # shutil.copy(img_abs_path, os.path.join(imgs_path, id+".jpg"))  # move image
-                    os.system("ln -s %s %s"%(img_abs_path, os.path.join(imgs_path, id+".jpg")))  # soft link of image
+                    shutil.copy(img_abs_path, os.path.join(imgs_path, id+".jpg"))  # move image
+                    # os.system("mklink /d %s %s"%(os.path.join(imgs_path, id+".jpg"), img_abs_path))  # soft link of image
                 if res is not None:
                     error_list.append(res)
             # finished one city
