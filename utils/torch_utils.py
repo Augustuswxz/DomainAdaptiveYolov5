@@ -316,16 +316,24 @@ class WeightEMA (object):
     """
     Exponential moving average weight optimizer for mean teacher model
     """
-    def __init__(self, params, src_params, alpha=0.999):
-        self.params = list(params)
-        self.src_params = list(src_params)
+
+    def __init__(self, teacher_model, alpha=0.99):
+        self.model = teacher_model  # FP32 Teacher EMA
         self.alpha = alpha
+        self.decay = lambda epoch: self.alpha
+        for p in self.model.parameters():  # teacher
+            p.requires_grad_(False)
 
-        for p, src_p in zip(self.params, self.src_params):
-            p.data[:] = src_p.data[:]
+    def update(self, stud_model, epoch):
+        # Update EMA parameters from student model
+        with torch.no_grad():
+            alpha = self.decay(epoch)
+            msd = stud_model.module.state_dict() if is_parallel(stud_model) else stud_model.state_dict()
+            for k, v in self.model.state_dict().items():
+                if v.dtype.is_floating_point:  # weights, biases.
+                    v *= alpha
+                    v += (1. - alpha) * msd[k].detach()
 
-    def step(self):
-        one_minus_alpha = 1.0 - self.alpha
-        for p, src_p in zip(self.params, self.src_params):
-            p.data.mul_(self.alpha)
-            p.data.add_(src_p.data * one_minus_alpha)
+    def update_attr(self, model, include=(), exclude=('process_group', 'reducer')):
+        # Update EMA attributes
+        copy_attr(self.model, model, include, exclude)

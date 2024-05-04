@@ -567,7 +567,7 @@ def train(hyp, opt, device):
                     last_opt_step = ni
                     
                     model_teacher.zero_grad()
-                    teacher_optimizer.step()
+                    teacher_optimizer.update(model_teacher,epoch)
             except:
                 # for possible bug when running scaler.scale(loss).backward()
                 print("RuntimeError: Function 'CudnnConvolutionBackward0' returned nan values in its 1th output")
