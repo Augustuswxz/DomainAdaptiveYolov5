@@ -232,7 +232,7 @@ def train(hyp, opt, device):
         if value.requires_grad:
             teacher_detection_params += [value]
             value.requires_grad = False
-    teacher_optimizer = WeightEMA(teacher_detection_params, student_detection_params, alpha=teacher_alpha)
+    teacher_optimizer = WeightEMA(model_teacher)
 
 
     # For debugging
@@ -567,7 +567,7 @@ def train(hyp, opt, device):
                     last_opt_step = ni
                     
                     model_teacher.zero_grad()
-                    teacher_optimizer.update(model_teacher,epoch)
+                    teacher_optimizer.update(model_student,epoch)
             except:
                 # for possible bug when running scaler.scale(loss).backward()
                 print("RuntimeError: Function 'CudnnConvolutionBackward0' returned nan values in its 1th output")
