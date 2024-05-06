@@ -1172,7 +1172,7 @@ def verify_image_label(args):
     except Exception as e:
         nc = 1
         msg = f'{prefix}WARNING: Ignoring corrupted image and/or label {im_file}: {e}'
-        return [None, None, None, None, nm, nf, ne, nc, msg]
+        # return [None, None, None, None, nm, nf, ne, nc, msg]
 
 
 def dataset_stats(path='coco128.yaml', autodownload=False, verbose=False):
