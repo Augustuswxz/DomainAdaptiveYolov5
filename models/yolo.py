@@ -278,6 +278,17 @@ def parse_model(d, ch):  # model_dict, input_channels(3)
             c2 = ch[f] * args[0] ** 2
         elif m is Expand:
             c2 = ch[f] // args[0] ** 2
+        # elif m is Zoom_cat:
+        #     c2 = sum(ch[x] for x in f)
+        # elif m is Add:
+        #     c2 = ch[f[-1]]
+        # elif m is attention_model:
+        #     c2 = ch[f[-1]]
+        #     args = [c2]
+        # elif m is ScalSeq:
+        #     c1 = [ch[x] for x in f]
+        #     c2 = make_divisible(args[0] * gw, 8)
+        #     args = [c1, c2]
         else:
             c2 = ch[f]
 
@@ -296,7 +307,7 @@ def parse_model(d, ch):  # model_dict, input_channels(3)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--cfg', type=str, default='yolov5s.yaml', help='model.yaml')
+    parser.add_argument('--cfg', type=str, default='yolov5-asf.yaml', help='model.yaml')
     parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
     opt = parser.parse_args()
     opt.cfg = check_file(opt.cfg)  # check file
