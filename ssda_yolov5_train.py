@@ -36,7 +36,7 @@ import torch.utils.data
 
 from torch.cuda import amp
 from torch.nn.parallel import DistributedDataParallel as DDP
-from torch.utils.tensorboard import SummaryWriter
+# from torch.utils.tensorboard import SummaryWriter
 
 FILE = Path(__file__).absolute()
 sys.path.append(FILE.parents[0].as_posix())  # add yolov5/ to path
@@ -114,7 +114,7 @@ def train(hyp, opt, device):
         if not evolve:
             prefix = colorstr('tensorboard: ')
             logger.info(f"{prefix}Start with 'tensorboard --logdir {opt.project}', view at http://localhost:6006/")
-            loggers['tb'] = SummaryWriter(str(save_dir))
+            # loggers['tb'] = SummaryWriter(str(save_dir))
 
         # W&B
         opt.hyp = hyp  # add hyperparameters
@@ -304,7 +304,7 @@ def train(hyp, opt, device):
     dataloader_sr, dataset_sr = create_dataloader(train_path_source_real, train_path_source_fake, imgsz, batch_size // WORLD_SIZE, 
         gs, single_cls, hyp=hyp, augment=True, cache=opt.cache_images, rect=opt.rect, rank=RANK, workers=workers,
         image_weights=opt.image_weights, quad=opt.quad, prefix=colorstr('train_source_real_fake: '))
-    dataloader_tr, dataset_tr = create_dataloader(train_path_target_real, train_path_target_fake, imgsz, batch_size // WORLD_SIZE, 
+    dataloader_tr, dataset_tr = create_dataloader(train_path_target_real, train_path_target_fake, imgsz, batch_size // WORLD_SIZE,
         gs, single_cls, hyp=hyp, augment=True, cache=opt.cache_images, rect=opt.rect, rank=RANK, workers=workers,
         image_weights=opt.image_weights, quad=opt.quad, prefix=colorstr('train_target_real_fake: '))
 
@@ -406,9 +406,9 @@ def train(hyp, opt, device):
 
         # mloss = torch.zeros(4, device=device)  # mean losses
         if all_shift:
-            mloss = torch.zeros((4 + all_shift), device=device)  # mean losses
+            mloss = torch.zeros((3 + all_shift), device=device)  # mean losses
         else:
-            mloss = torch.zeros(4, device=device)  # mean losses
+            mloss = torch.zeros(3, device=device)  # mean losses
         
         # if RANK != -1 and False:  # load dats sequentially in UMT
         if RANK != -1:  # load dats sequentially in UMT
@@ -581,7 +581,7 @@ def train(hyp, opt, device):
             if RANK in [-1, 0]:
                 mloss = (mloss * i + loss_items) / (i + 1)  # update mean losses
                 mem = '%.3gG' % (torch.cuda.memory_reserved() / 1E9 if torch.cuda.is_available() else 0)  # (GB)
-                s = ('%10s' * 2 + '%10.4g' * (6 + all_shift)) % (
+                s = ('%10s' * 2 + '%10.4g' * (5 + all_shift)) % (
                     f'{epoch}/{epochs - 1}', mem, *mloss, targets_sr.shape[0], imgs_sr.shape[-1])
                 pbar.set_description(s)
 
@@ -731,11 +731,11 @@ def train(hyp, opt, device):
 
 def parse_opt(known=False):
     parser = argparse.ArgumentParser()
-    parser.add_argument('--weights', type=str, default='weights/yolov5s.pt', help='initial weights path')
+    parser.add_argument('--weights', type=str, default='weights/yolov5s-6.0.pt', help='initial weights path')
     parser.add_argument('--cfg', type=str, default='models/yolov5s.yaml', help='model.yaml path')
     parser.add_argument('--data', type=str, default='data/yamls_sda/cityscapes_csfoggy.yaml', help='dataset.yaml path')
     parser.add_argument('--hyp', type=str, default='data/hyps/hyp.scratch.yaml', help='hyperparameters path')
-    parser.add_argument('--epochs', type=int, default=10)
+    parser.add_argument('--epochs', type=int, default=60)
     parser.add_argument('--batch-size', type=int, default=4, help='total batch size for all GPUs')
     parser.add_argument('--img-size', nargs='+', type=int, default=[640, 640], help='[train, test] image sizes')
     parser.add_argument('--rect', action='store_true', help='rectangular training')

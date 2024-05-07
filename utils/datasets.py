@@ -63,7 +63,8 @@ def exif_size(img):
     return s
 
 
-def create_dataloader(path, path_fake, imgsz, batch_size, stride, single_cls=False, hyp=None, augment=False, cache=False, pad=0.0,
+def create_dataloader(path, path_fake, imgsz, batch_size, stride, single_cls=False, hyp=None, augment=False,
+                      cache=False, pad=0.0,
                       rect=False, rank=-1, workers=8, image_weights=False, quad=False, prefix=''):
     # Make sure only the first process in DDP process the dataset first, and the following others can use the cache
     with torch_distributed_zero_first(rank):
@@ -354,7 +355,8 @@ def img2label_paths(img_paths):
 
 
 class LoadImagesAndLabels(Dataset):  # for training/testing
-    def __init__(self, path, path_fake, img_size=640, batch_size=16, augment=False, hyp=None, rect=False, image_weights=False,
+    def __init__(self, path, path_fake, img_size=640, batch_size=16, augment=False, hyp=None, rect=False,
+                 image_weights=False,
                  cache_images=False, single_cls=False, stride=32, pad=0.0, prefix=''):
         self.img_size = img_size
         self.augment = augment
@@ -366,7 +368,7 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
         self.stride = stride
         self.path = path if isinstance(path, list) else [path]
         self.path_fake = path_fake if isinstance(path_fake, list) else [path_fake]
-            
+
         try:
             f = []  # image files
             f_fake = []  # fake image files
@@ -388,24 +390,26 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
                     with open(p_fake, 'r') as t_fake:
                         t_fake = t_fake.read().strip().splitlines()
                         parent_fake = str(p_fake.parent) + os.sep
-                        f_fake += [x.replace('./', parent_fake) if x.startswith('./') else x for x in t_fake]  # local to global path
+                        f_fake += [x.replace('./', parent_fake) if x.startswith('./') else x for x in
+                                   t_fake]  # local to global path
                 else:
                     raise Exception(f'{prefix}{p} or {prefix}{p_fake} does not exist')
-                 
+
             self.img_files = sorted([x.replace('/', os.sep) for x in f if x.split('.')[-1].lower() in img_formats])
-            self.img_files_fake = sorted([x.replace('/', os.sep) for x in f_fake if x.split('.')[-1].lower() in img_formats])
+            self.img_files_fake = sorted(
+                [x.replace('/', os.sep) for x in f_fake if x.split('.')[-1].lower() in img_formats])
             # self.img_files = sorted([x for x in f if x.suffix[1:].lower() in img_formats])  # pathlib
             assert self.img_files, f'{prefix}No images found'
             assert self.img_files_fake, f'{prefix}No images found'
         except Exception as e:
             raise Exception(f'{prefix}Error loading data from {path}: {e}\nSee {help_url}')
-    
-    
+
         # Check real and fake are matched image pairs
         for img_file, img_file_fake in zip(self.img_files, self.img_files_fake):
-            img_name = os.path.split(img_file)[-1].split(".")[0] 
+            img_name = os.path.split(img_file)[-1].split(".")[0]
             img_name_fake = os.path.split(img_file_fake)[-1].split(".")[0]
-            assert img_name==img_name_fake, "[Check 1st] real image %s and fake image %s should be matched!"%(img_file, img_file_fake)
+            assert img_name == img_name_fake, "[Check 1st] real image %s and fake image %s should be matched!" % (
+            img_file, img_file_fake)
 
         # Check cache
         self.label_files = img2label_paths(self.img_files)  # labels
@@ -433,8 +437,7 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
         self.shapes = np.array(shapes, dtype=np.float64)
         # self.img_files = list(cache.keys())  # update
         self.label_files = img2label_paths(cache.keys())  # update
-        
-        
+
         # Make sure real and fake are matched image pairs
         img_files_new_order = list(cache.keys())  # update
         img_files_fake_new_order = []
@@ -443,14 +446,14 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
             img_files_fake_new_order.append(self.img_files_fake[ind])
         self.img_files = img_files_new_order
         self.img_files_fake = img_files_fake_new_order
-        
+
         # Check real and fake are matched image pairs
         for img_file, img_file_fake in zip(self.img_files, self.img_files_fake):
-            img_name = os.path.split(img_file)[-1].split(".")[0] 
+            img_name = os.path.split(img_file)[-1].split(".")[0]
             img_name_fake = os.path.split(img_file_fake)[-1].split(".")[0]
-            assert img_name==img_name_fake, "[Check 2nd] real image %s and fake image %s should be matched!"%(img_file, img_file_fake)
-    
-    
+            assert img_name == img_name_fake, "[Check 2nd] real image %s and fake image %s should be matched!" % (
+            img_file, img_file_fake)
+
         if single_cls:
             for x in self.labels:
                 x[:, 0] = 0
@@ -546,7 +549,7 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
 
     def __getitem__(self, index):
         index = self.indices[index]  # linear, shuffled, or image_weights
-        
+
         hyp = self.hyp
         mosaic = self.mosaic and random.random() < hyp['mosaic']
         if mosaic:
@@ -584,11 +587,11 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
             if not mosaic:
                 # img, labels = random_perspective(img, labels,
                 img, img_fake, labels = random_perspective(img, img_fake, labels,
-                                                 degrees=hyp['degrees'],
-                                                 translate=hyp['translate'],
-                                                 scale=hyp['scale'],
-                                                 shear=hyp['shear'],
-                                                 perspective=hyp['perspective'])
+                                                           degrees=hyp['degrees'],
+                                                           translate=hyp['translate'],
+                                                           scale=hyp['scale'],
+                                                           shear=hyp['shear'],
+                                                           perspective=hyp['perspective'])
 
             # Augment colorspace
             # augment_hsv(img, hgain=hyp['hsv_h'], sgain=hyp['hsv_s'], vgain=hyp['hsv_v'])
@@ -628,7 +631,8 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
         img_fake = np.ascontiguousarray(img_fake)
 
         # return torch.from_numpy(img), labels_out, self.img_files[index], shapes
-        return torch.from_numpy(img), torch.from_numpy(img_fake), labels_out, self.img_files[index], self.img_files_fake[index], shapes
+        return torch.from_numpy(img), torch.from_numpy(img_fake), labels_out, self.img_files[index], \
+        self.img_files_fake[index], shapes
 
     @staticmethod
     def collate_fn(batch):
@@ -653,12 +657,16 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
         for i in range(n):  # zidane torch.zeros(16,3,720,1280)  # BCHW
             i *= 4
             if random.random() < 0.5:
-                im = F.interpolate(img[i].unsqueeze(0).float(), scale_factor=2., mode='bilinear', align_corners=False)[0].type(img[i].type())
-                im_fake = F.interpolate(img_fake[i].unsqueeze(0).float(), scale_factor=2., mode='bilinear', align_corners=False)[0].type(img_fake[i].type())
+                im = F.interpolate(img[i].unsqueeze(0).float(), scale_factor=2., mode='bilinear', align_corners=False)[
+                    0].type(img[i].type())
+                im_fake = \
+                F.interpolate(img_fake[i].unsqueeze(0).float(), scale_factor=2., mode='bilinear', align_corners=False)[
+                    0].type(img_fake[i].type())
                 l = label[i]
             else:
                 im = torch.cat((torch.cat((img[i], img[i + 1]), 1), torch.cat((img[i + 2], img[i + 3]), 1)), 2)
-                im_fake = torch.cat((torch.cat((img_fake[i], img_fake[i + 1]), 1), torch.cat((img_fake[i + 2], img_fake[i + 3]), 1)), 2)
+                im_fake = torch.cat(
+                    (torch.cat((img_fake[i], img_fake[i + 1]), 1), torch.cat((img_fake[i + 2], img_fake[i + 3]), 1)), 2)
                 l = torch.cat((label[i], label[i + 1] + ho, label[i + 2] + wo, label[i + 3] + ho + wo), 0) * s
             img4.append(im)
             img4_fake.append(im_fake)
@@ -676,9 +684,9 @@ def load_image(self, index, type="real"):
     # loads 1 image from dataset, returns img, original hw, resized hw
     img = self.imgs[index]
     if img is None:  # not cached
-        if type=="real":
+        if type == "real":
             path = self.img_files[index]
-        elif type=="fake":
+        elif type == "fake":
             path = self.img_files_fake[index]
         img = cv2.imread(path)  # BGR
         assert img is not None, 'Image Not Found ' + path
@@ -706,7 +714,7 @@ def augment_hsv(img, img_fake, hgain=0.5, sgain=0.5, vgain=0.5):
 
         img_hsv = cv2.merge((cv2.LUT(hue, lut_hue), cv2.LUT(sat, lut_sat), cv2.LUT(val, lut_val)))
         img_fake_hsv = cv2.merge((cv2.LUT(hue_f, lut_hue), cv2.LUT(sat_f, lut_sat), cv2.LUT(val_f, lut_val)))
-        
+
         cv2.cvtColor(img_hsv, cv2.COLOR_HSV2BGR, dst=img)  # no return needed
         cv2.cvtColor(img_fake_hsv, cv2.COLOR_HSV2BGR, dst=img_fake)  # no return needed
 
@@ -773,12 +781,12 @@ def load_mosaic(self, index):
     # Augment
     # img4, labels4 = random_perspective(img4, labels4, segments4,
     img4, img4_fake, labels4 = random_perspective(img4, img4_fake, labels4, segments4,
-                                       degrees=self.hyp['degrees'],
-                                       translate=self.hyp['translate'],
-                                       scale=self.hyp['scale'],
-                                       shear=self.hyp['shear'],
-                                       perspective=self.hyp['perspective'],
-                                       border=self.mosaic_border)  # border to remove
+                                                  degrees=self.hyp['degrees'],
+                                                  translate=self.hyp['translate'],
+                                                  scale=self.hyp['scale'],
+                                                  shear=self.hyp['shear'],
+                                                  perspective=self.hyp['perspective'],
+                                                  border=self.mosaic_border)  # border to remove
 
     # return img4, labels4
     return img4, img4_fake, labels4
@@ -909,8 +917,8 @@ def letterbox(img, new_shape=(640, 640), color=(114, 114, 114), auto=True, scale
     return img, ratio, (dw, dh)
 
 
-def random_perspective(img, img_fake, targets=(), segments=(), degrees=10, translate=.1, scale=.1, shear=10, 
-    perspective=0.0, border=(0, 0)):
+def random_perspective(img, img_fake, targets=(), segments=(), degrees=10, translate=.1, scale=.1, shear=10,
+                       perspective=0.0, border=(0, 0)):
     # torchvision.transforms.RandomAffine(degrees=(-10, 10), translate=(.1, .1), scale=(.9, 1.1), shear=(-10, 10))
     # targets = [cls, xyxy]
 
@@ -921,8 +929,7 @@ def random_perspective(img, img_fake, targets=(), segments=(), degrees=10, trans
     C = np.eye(3)
     C[0, 2] = -img.shape[1] / 2  # x translation (pixels)
     C[1, 2] = -img.shape[0] / 2  # y translation (pixels)
-    
-    
+
     # Perspective
     P = np.eye(3)
     P[2, 0] = random.uniform(-perspective, perspective)  # x perspective (about y)
@@ -1136,7 +1143,7 @@ def verify_image_label(args):
     nm, nf, ne, nc = 0, 0, 0, 0  # number missing, found, empty, corrupt
     try:
         # verify images
-        im = Image.open(im_file)
+        im = Image.open(im_file).convert('RGB')
         im.verify()  # PIL verify
         shape = exif_size(im)  # image size
         assert (shape[0] > 9) & (shape[1] > 9), f'image size {shape} <10 pixels'
@@ -1172,7 +1179,7 @@ def verify_image_label(args):
     except Exception as e:
         nc = 1
         msg = f'{prefix}WARNING: Ignoring corrupted image and/or label {im_file}: {e}'
-        # return [None, None, None, None, nm, nf, ne, nc, msg]
+        return [None, None, None, None, nm, nf, ne, nc, msg]
 
 
 def dataset_stats(path='coco128.yaml', autodownload=False, verbose=False):
@@ -1217,3 +1224,29 @@ def dataset_stats(path='coco128.yaml', autodownload=False, verbose=False):
         print(json.dumps(stats, indent=2, sort_keys=False))
         # print(yaml.dump([stats], sort_keys=False, default_flow_style=False))
     return stats
+
+
+def exif_transpose(image):
+    """
+    Transpose a PIL image accordingly if it has an EXIF Orientation tag.
+    From https://github.com/python-pillow/Pillow/blob/master/src/PIL/ImageOps.py
+
+    :param image: The image to transpose.
+    :return: An image.
+    """
+    exif = image.getexif()
+    orientation = exif.get(0x0112, 1)  # default 1
+    if orientation > 1:
+        method = {2: Image.FLIP_LEFT_RIGHT,
+                  3: Image.ROTATE_180,
+                  4: Image.FLIP_TOP_BOTTOM,
+                  5: Image.TRANSPOSE,
+                  6: Image.ROTATE_270,
+                  7: Image.TRANSVERSE,
+                  8: Image.ROTATE_90,
+                  }.get(orientation)
+        if method is not None:
+            image = image.transpose(method)
+            del exif[0x0112]
+            image.info["exif"] = exif.tobytes()
+    return image
