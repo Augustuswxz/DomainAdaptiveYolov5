@@ -1,1 +1,4 @@
-/weights/.pt
+/weights/yolov5s.pt
+/weights/yolov5m.pt
+/weights/yolov5l.pt
+/weights/yolov5x.pt
