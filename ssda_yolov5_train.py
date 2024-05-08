@@ -136,6 +136,7 @@ def train(hyp, opt, device):
     # torch.cuda.empty_cache()
     # strip_optimizer(weights)  # strip optimizers, this will apparently reduce the model size
     if pretrained:
+        print("Model Pretrained,Continue Training")
         with torch_distributed_zero_first(RANK):
             weights = attempt_download(weights)  # download if not found locally
         ckpt = torch.load(weights, map_location=device)  # load checkpoint
@@ -161,11 +162,13 @@ def train(hyp, opt, device):
         ckpt_student = torch.load(student_weight, map_location=device)  # load checkpoint
         state_dict_student = ckpt_student['ema' if ckpt_student.get('ema') else 'model'].float().half().state_dict()  # to FP32
         model_student.load_state_dict(state_dict_student, strict=False)  # load
+        print("Load model_student")
         del ckpt_student, state_dict_student
         
         ckpt_teacher = torch.load(teacher_weight, map_location=device)  # load checkpoint
         state_dict_teacher = ckpt_teacher['ema' if ckpt_teacher.get('ema') else 'model'].float().half().state_dict()  # to FP32
         model_teacher.load_state_dict(state_dict_teacher, strict=False)  # load
+        print("Load model_teacher")
         del ckpt_teacher, state_dict_teacher
         
         
@@ -183,7 +186,7 @@ def train(hyp, opt, device):
     # test_path_target_real = data_dict['train_target_real']  # test on target dataset w labels, remember val in 'test_target_real'
     
     
-    # Freeze 
+    # Freeze 冻结学生教师的部分层
     freeze_student = []  # parameter names to freeze (full or partial)
     for k, v in model_student.named_parameters():
         v.requires_grad = True  # train all layers
@@ -272,7 +275,9 @@ def train(hyp, opt, device):
             results_file.write_text(ckpt['training_results'])  # write results.txt
 
         # Epochs
+        # ckpt['epoch'] = 10
         start_epoch = ckpt['epoch'] + 1
+        print("start_epoch = ",start_epoch)
         if resume:
             assert start_epoch > 0, '%s training to %g epochs is finished, nothing to resume.' % (weights, epochs)
         if epochs < start_epoch:
@@ -731,11 +736,11 @@ def train(hyp, opt, device):
 
 def parse_opt(known=False):
     parser = argparse.ArgumentParser()
-    parser.add_argument('--weights', type=str, default='weights/yolov5s.pt', help='initial weights path')
-    parser.add_argument('--cfg', type=str, default='models/yolov5s.yaml', help='model.yaml path')
+    parser.add_argument('--weights', type=str, default='weights/yolov5l.pt', help='initial weights path')
+    parser.add_argument('--cfg', type=str, default='', help='model.yaml path')
     parser.add_argument('--data', type=str, default='data/yamls_sda/cityscapes_csfoggy.yaml', help='dataset.yaml path')
     parser.add_argument('--hyp', type=str, default='data/hyps/hyp.scratch.yaml', help='hyperparameters path')
-    parser.add_argument('--epochs', type=int, default=10)
+    parser.add_argument('--epochs', type=int, default=40)
     parser.add_argument('--batch-size', type=int, default=4, help='total batch size for all GPUs')
     parser.add_argument('--img-size', nargs='+', type=int, default=[640, 640], help='[train, test] image sizes')
     parser.add_argument('--rect', action='store_true', help='rectangular training')
@@ -775,8 +780,8 @@ def parse_opt(known=False):
     parser.add_argument('--consistency_loss', action='store_true', help='Whether use the consistency loss (newly added)')
     parser.add_argument('--alpha_weight', type=float, default=2.0, help='The weight for the consistency loss (newly added)')
     
-    parser.add_argument('--student_weight', type=str, default='None', help='Resuming weights path of student model in UMT')
-    parser.add_argument('--teacher_weight', type=str, default='None', help='Resuming weights path of teacher model in UMT')
+    parser.add_argument('--student_weight', type=str, default='runs/train/myssdayolo47/weights/best_student.pt', help='Resuming weights path of student model in UMT')
+    parser.add_argument('--teacher_weight', type=str, default='runs/train/myssdayolo47/weights/best_teacher.pt', help='Resuming weights path of teacher model in UMT')
     parser.add_argument('--save_dir', type=str, default='None', help='Resuming project path in UMT')
     opt = parser.parse_known_args()[0] if known else parser.parse_args()
     return opt
